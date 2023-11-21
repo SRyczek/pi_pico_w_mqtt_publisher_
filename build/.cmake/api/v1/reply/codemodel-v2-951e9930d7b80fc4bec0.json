@@ -1429,7 +1429,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "ELF2UF2Build::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-ELF2UF2Build-Debug-e0763bbf9d9f2fb84cba.json",
+					"jsonFile" : "target-ELF2UF2Build-Debug-bb4f95da17c54edc419a.json",
 					"name" : "ELF2UF2Build",
 					"projectIndex" : 0
 				},
@@ -1471,7 +1471,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "mqtt_lib::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-mqtt_lib-Debug-305cd69be0eb38ad12b4.json",
+					"jsonFile" : "target-mqtt_lib-Debug-2e286e268fa06d44d61c.json",
 					"name" : "mqtt_lib",
 					"projectIndex" : 0
 				},

@@ -10,76 +10,9 @@
 
 #include "lwip/apps/mqtt.h"
 
-
-/** Define this to a compile-time IP address initialization
- * to connect anything else than IPv4 loopback
- */
-static const struct mqtt_connect_client_info_t mqtt_client_info =
-{
-    "test",
-    NULL, /* user */
-    NULL, /* pass */
-    100,  /* keep alive */
-    NULL, /* will_topic */
-    NULL, /* will_msg */
-    0,    /* will_qos */
-    0     /* will_retain */
-    #if LWIP_ALTCP && LWIP_ALTCP_TLS
-    , NULL
-    #endif
-};
-
-typedef struct MQTT_CLIENT_T_ {
-    ip_addr_t remote_addr;
-    mqtt_client_t *mqtt_client;
-    u32_t received;
-    u32_t counter;
-    u32_t reconnect;
-} MQTT_CLIENT_T;
+#include "mqtt_fun.h"
 
 MQTT_CLIENT_T *mqtt;
-
-static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags)
-{
-  const struct mqtt_connect_client_info_t* client_info = (const struct mqtt_connect_client_info_t*)arg;
-  LWIP_UNUSED_ARG(data);
-
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" data cb: len %d, flags %d\n", client_info->client_id,
-          (int)len, (int)flags));
-}
-
-static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len)
-{
-  const struct mqtt_connect_client_info_t* client_info = (const struct mqtt_connect_client_info_t*)arg;
-
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" publish cb: topic %s, len %d\n", client_info->client_id,
-          topic, (int)tot_len));
-}
-
-static void mqtt_request_cb(void *arg, err_t err)
-{
-  const struct mqtt_connect_client_info_t* client_info = (const struct mqtt_connect_client_info_t*)arg;
-
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" request cb: err %d\n", client_info->client_id, (int)err));
-}
-
-static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status)
-{
-  const struct mqtt_connect_client_info_t* client_info = (const struct mqtt_connect_client_info_t*)arg;
-  LWIP_UNUSED_ARG(client);
-
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" connection cb: status %d\n", client_info->client_id, (int)status));
-  printf("mqtt con cb works\n");
-  if (status == MQTT_CONNECT_ACCEPTED) {
-      printf("Connection correct\n");
-  } else {
-    printf("Connection error\n");
-  }
-}
-
-void mqtt_sub_request_cb(void *arg, err_t err) {
-    printf("mqtt_sub_request_cb: err %d\n", err);
-}
 
 int main(void)
 {
@@ -101,42 +34,50 @@ int main(void)
         return 1;
     }
 
-
     mqtt = (MQTT_CLIENT_T*)calloc(1, sizeof(MQTT_CLIENT_T));
-  
+    mqtt->mqtt_client = mqtt_client_new();  
+
     ip_addr_t addr;
-    if (!ip4addr_aton("192.168.1.64", &addr)) {
+    int ret = ip4addr_aton("192.168.1.64", &addr);
+    if (ret) {
         printf("ip error\n");
-        return 0;
-      }
-    mqtt->mqtt_client = mqtt_client_new();
+        return ret;
+    }
 
     err_t err = mqtt_client_connect(mqtt->mqtt_client,
-                &addr, MQTT_PORT,
-                mqtt_connection_cb, mqtt, &mqtt_client_info);
+                                    &addr, MQTT_PORT,
+                                    mqtt_connection_cb, mqtt, 
+                                    &mqtt_client_info);
 
-    if(err != ERR_OK) {
+    if (err != ERR_OK) {
         printf("Connect error\n");
         return err;
     }
 
     mqtt_set_inpub_callback(mqtt->mqtt_client,
-            mqtt_incoming_publish_cb,
-            mqtt_incoming_data_cb,
-            0);
+                            mqtt_incoming_publish_cb,
+                            mqtt_incoming_data_cb,
+                            0);
 
-  u8_t qos = 2; /* 0 1 or 2, see MQTT specification.  AWS IoT does not support QoS 2 */
+  u8_t qos = 2; /* 0 1 or 2 */
   u8_t retain = 0;
   char buffer[128];
+  char topic[20];
   sprintf(buffer, "hello from pico\n");
-
+  sprintf(topic, "test");
 
     while (1) {
-        cyw43_arch_poll();
+      cyw43_arch_poll();
 
-        cyw43_arch_lwip_begin();
-        mqtt_publish(mqtt->mqtt_client, "test", buffer, strlen(buffer), qos, retain,  mqtt_sub_request_cb, mqtt);
-        cyw43_arch_lwip_end();
-        sleep_ms(3000);
+      cyw43_arch_lwip_begin();
+      mqtt_publish(mqtt->mqtt_client, 
+                   topic, buffer, 
+                   strlen(buffer), 
+                   qos, retain,  
+                   mqtt_sub_request_cb, 
+                   mqtt);
+
+      cyw43_arch_lwip_end();
+      sleep_ms(3000);
     }
 }

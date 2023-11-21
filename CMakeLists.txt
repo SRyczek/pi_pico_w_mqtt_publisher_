@@ -25,6 +25,7 @@ target_include_directories(lwipopts INTERFACE
 
 add_executable(mqtt_lib
                mqtt_lib.c
+               mqtt_fun.c
                )
 
 target_link_libraries(mqtt_lib 
