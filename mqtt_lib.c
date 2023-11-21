@@ -71,15 +71,14 @@ static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection
   LWIP_PLATFORM_DIAG(("MQTT client \"%s\" connection cb: status %d\n", client_info->client_id, (int)status));
   printf("mqtt con cb works\n");
   if (status == MQTT_CONNECT_ACCEPTED) {
-    mqtt_sub_unsub(client,
-            "topic_qos1", 1,
-            mqtt_request_cb, LWIP_CONST_CAST(void*, client_info),
-            1);
-    mqtt_sub_unsub(client,
-            "topic_qos0", 0,
-            mqtt_request_cb, LWIP_CONST_CAST(void*, client_info),
-            1);
+      printf("Connection correct\n");
+  } else {
+    printf("Connection error\n");
   }
+}
+
+void mqtt_sub_request_cb(void *arg, err_t err) {
+    printf("mqtt_sub_request_cb: err %d\n", err);
 }
 
 int main(void)
@@ -97,7 +96,7 @@ int main(void)
     }
     cyw43_arch_enable_sta_mode();
 
-    if (cyw43_arch_wifi_connect_timeout_ms("multimedia_maj12", "opjkl1327", CYW43_AUTH_WPA2_AES_PSK, 30000) != 0) {
+    if (cyw43_arch_wifi_connect_timeout_ms("ALHN-3D1E", "5981648745", CYW43_AUTH_WPA2_AES_PSK, 30000) != 0) {
         printf("failed to connect\n");
         return 1;
     }
@@ -105,10 +104,8 @@ int main(void)
 
     mqtt = (MQTT_CLIENT_T*)calloc(1, sizeof(MQTT_CLIENT_T));
   
-
-
     ip_addr_t addr;
-    if (!ip4addr_aton("192.168.0.20", &addr)) {
+    if (!ip4addr_aton("192.168.1.64", &addr)) {
         printf("ip error\n");
         return 0;
       }
@@ -117,6 +114,7 @@ int main(void)
     err_t err = mqtt_client_connect(mqtt->mqtt_client,
                 &addr, MQTT_PORT,
                 mqtt_connection_cb, mqtt, &mqtt_client_info);
+
     if(err != ERR_OK) {
         printf("Connect error\n");
         return err;
@@ -125,18 +123,20 @@ int main(void)
     mqtt_set_inpub_callback(mqtt->mqtt_client,
             mqtt_incoming_publish_cb,
             mqtt_incoming_data_cb,
-            mqtt);
+            0);
 
-  u8_t qos = 0; /* 0 1 or 2, see MQTT specification.  AWS IoT does not support QoS 2 */
+  u8_t qos = 2; /* 0 1 or 2, see MQTT specification.  AWS IoT does not support QoS 2 */
   u8_t retain = 0;
   char buffer[128];
   sprintf(buffer, "hello from pico\n");
 
 
     while (1) {
-        // cyw43_arch_lwip_begin();
-        // mqtt_publish(mqtt->mqtt_client_inst, "pico_w/test", buffer, strlen(buffer), qos, retain, NULL, NULL);
-        // cyw43_arch_lwip_end();
-        sleep_ms(1000);
+        cyw43_arch_poll();
+
+        cyw43_arch_lwip_begin();
+        mqtt_publish(mqtt->mqtt_client, "test", buffer, strlen(buffer), qos, retain,  mqtt_sub_request_cb, mqtt);
+        cyw43_arch_lwip_end();
+        sleep_ms(3000);
     }
 }
