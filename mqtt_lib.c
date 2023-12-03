@@ -1,4 +1,36 @@
 
+/*
+ * MIT License
+ * 
+ * Copyright (c) 2023 Sebastian Ry
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+*/
+
+/* 
+ * This code shows an example use and implementation of the mqtt publisher on the 
+ * Raspberry Pi Pico W using LWIP, implemented in the Pico SDK. The code sends a 
+ * sample message to the specified broker address. 
+ * I tested it using mosquitto for ubuntu 20.04. 
+ */
+
+
 #include <string.h>
 #include <stdio.h>
 
@@ -29,7 +61,8 @@ int main(void)
     }
     cyw43_arch_enable_sta_mode();
 
-    if (cyw43_arch_wifi_connect_timeout_ms("ALHN-3D1E", "5981648745", CYW43_AUTH_WPA2_AES_PSK, 30000) != 0) {
+    /* pass your ssid and password */
+    if (cyw43_arch_wifi_connect_timeout_ms("SSID", "PASS", CYW43_AUTH_WPA2_AES_PSK, 30000) != 0) {
         printf("failed to connect\n");
         return 1;
     }
@@ -37,6 +70,7 @@ int main(void)
     mqtt = (MQTT_CLIENT_T*)calloc(1, sizeof(MQTT_CLIENT_T));
     mqtt->mqtt_client = mqtt_client_new();  
 
+    /* broker ip */
     ip_addr_t addr;
     int ret = ip4addr_aton("192.168.1.64", &addr);
     if (ret) {
@@ -59,11 +93,14 @@ int main(void)
                             mqtt_incoming_data_cb,
                             0);
 
+    /* config */
   u8_t qos = 2; /* 0 1 or 2 */
   u8_t retain = 0;
   char buffer[128];
   char topic[20];
-  sprintf(buffer, "hello from pico\n");
+  /* message to broker 
+    (can be changed according to requirements, e.g. for reading sensor values) */
+  sprintf(buffer, "hello from pico\n"); 
   sprintf(topic, "test");
 
     while (1) {
